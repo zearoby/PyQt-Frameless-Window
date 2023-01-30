@@ -2,7 +2,6 @@
 import sys
 from ctypes import cast
 from ctypes.wintypes import LPRECT, MSG
-from platform import platform
 
 import win32con
 import win32gui
@@ -27,9 +26,14 @@ class WindowsFramelessWindow(QWidget):
         super().__init__(parent=parent)
         self.windowEffect = WindowsWindowEffect(self)
         self.titleBar = TitleBar(self)
+        self._isResizeEnabled = True
 
         # remove window border
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        if not win_utils.isWin7():
+            self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint |
+                                Qt.WindowMinMaxButtonsHint)
 
         # add DWM shadow and window animation
         self.windowEffect.addWindowAnimation(self.winId())
@@ -55,6 +59,10 @@ class WindowsFramelessWindow(QWidget):
         self.titleBar.setParent(self)
         self.titleBar.raise_()
 
+    def setResizeEnabled(self, isEnabled: bool):
+        """ set whether resizing is enabled """
+        self._isResizeEnabled = isEnabled
+
     def resizeEvent(self, e):
         super().resizeEvent(e)
         self.titleBar.resize(self.width(), self.titleBar.height())
@@ -65,7 +73,7 @@ class WindowsFramelessWindow(QWidget):
         if not msg.hWnd:
             return super().nativeEvent(eventType, message)
 
-        if msg.message == win32con.WM_NCHITTEST:
+        if msg.message == win32con.WM_NCHITTEST and self._isResizeEnabled:
             pos = QCursor.pos()
             xPos = pos.x() - self.x()
             yPos = pos.y() - self.y()
@@ -142,15 +150,15 @@ class AcrylicWindow(WindowsFramelessWindow):
                             Qt.WindowMinMaxButtonsHint)
         self.windowEffect.addWindowAnimation(self.winId())
 
-        if "Windows-7" in platform():
+        if win_utils.isWin7():
             self.windowEffect.addShadowEffect(self.winId())
             self.windowEffect.setAeroEffect(self.winId())
         else:
             self.windowEffect.setAcrylicEffect(self.winId())
-            if sys.getwindowsversion().build >= 22000:
+            if win_utils.isGreaterEqualWin11():
                 self.windowEffect.addShadowEffect(self.winId())
 
-        self.setStyleSheet("background:transparent")
+        self.setStyleSheet("AcrylicWindow{background:transparent}")
 
     def nativeEvent(self, eventType, message):
         """ Handle the Windows message """
