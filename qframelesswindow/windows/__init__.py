@@ -3,12 +3,12 @@ import sys
 from ctypes import cast
 from ctypes.wintypes import LPRECT, MSG
 
+import win32api
 import win32con
 import win32gui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCloseEvent, QCursor
 from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtWinExtras import QtWin
 
 from ..titlebar import TitleBar
 from ..utils import win32_utils as win_utils
@@ -28,23 +28,27 @@ class WindowsFramelessWindow(QWidget):
         self.titleBar = TitleBar(self)
         self._isResizeEnabled = True
 
-        # remove window border
-        if not win_utils.isWin7():
-            self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
-        else:
-            self.setWindowFlags(Qt.FramelessWindowHint |
-                                Qt.WindowMinMaxButtonsHint)
-
-        # add DWM shadow and window animation
-        self.windowEffect.addWindowAnimation(self.winId())
-        if not isinstance(self, AcrylicWindow):
-            self.windowEffect.addShadowEffect(self.winId())
+        self.updateFrameless()
 
         # solve issue #5
         self.windowHandle().screenChanged.connect(self.__onScreenChanged)
 
         self.resize(500, 500)
         self.titleBar.raise_()
+
+    def updateFrameless(self):
+        """ update frameless window """
+        if not win_utils.isWin7():
+            self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        elif self.parent():
+            self.setWindowFlags(self.parent().windowFlags() | Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
+
+        # add DWM shadow and window animation
+        self.windowEffect.addWindowAnimation(self.winId())
+        if not isinstance(self, AcrylicWindow):
+            self.windowEffect.addShadowEffect(self.winId())
 
     def setTitleBar(self, titleBar):
         """ set custom title bar
@@ -55,6 +59,7 @@ class WindowsFramelessWindow(QWidget):
             title bar
         """
         self.titleBar.deleteLater()
+        self.titleBar.hide()
         self.titleBar = titleBar
         self.titleBar.setParent(self)
         self.titleBar.raise_()
@@ -78,10 +83,13 @@ class WindowsFramelessWindow(QWidget):
             xPos = pos.x() - self.x()
             yPos = pos.y() - self.y()
             w, h = self.width(), self.height()
-            lx = xPos < self.BORDER_WIDTH
-            rx = xPos > w - self.BORDER_WIDTH
-            ty = yPos < self.BORDER_WIDTH
-            by = yPos > h - self.BORDER_WIDTH
+
+            # fixes issue https://github.com/zhiyiYo/PyQt-Frameless-Window/issues/98
+            bw = 0 if win_utils.isMaximized(msg.hWnd) or win_utils.isFullScreen(msg.hWnd) else self.BORDER_WIDTH
+            lx = xPos < bw
+            rx = xPos > w - bw
+            ty = yPos < bw
+            by = yPos > h - bw
             if lx and ty:
                 return True, win32con.HTTOPLEFT
             elif rx and by:
@@ -109,11 +117,13 @@ class WindowsFramelessWindow(QWidget):
 
             # adjust the size of client rect
             if isMax and not isFull:
-                thickness = win_utils.getResizeBorderThickness(msg.hWnd)
-                rect.top += thickness
-                rect.left += thickness
-                rect.right -= thickness
-                rect.bottom -= thickness
+                ty = win_utils.getResizeBorderThickness(msg.hWnd, False)
+                rect.top += ty
+                rect.bottom -= ty
+
+                tx = win_utils.getResizeBorderThickness(msg.hWnd, True)
+                rect.left += tx
+                rect.right -= tx
 
             # handle the situation that an auto-hide taskbar is enabled
             if (isMax or isFull) and Taskbar.isAutoHide():
@@ -144,10 +154,17 @@ class AcrylicWindow(WindowsFramelessWindow):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.__closedByKey = False
+        self.setStyleSheet("AcrylicWindow{background:transparent}")
 
-        QtWin.enableBlurBehindWindow(self)
-        self.setWindowFlags(Qt.FramelessWindowHint |
-                            Qt.WindowMinMaxButtonsHint)
+    def updateFrameless(self):
+        super().updateFrameless()
+        self.windowEffect.enableBlurBehindWindow(self.winId())
+
+        if win_utils.isWin7() and self.parent():
+            self.setWindowFlags(self.parent().windowFlags() | Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
+        else:
+            self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
+
         self.windowEffect.addWindowAnimation(self.winId())
 
         if win_utils.isWin7():
@@ -157,8 +174,6 @@ class AcrylicWindow(WindowsFramelessWindow):
             self.windowEffect.setAcrylicEffect(self.winId())
             if win_utils.isGreaterEqualWin11():
                 self.windowEffect.addShadowEffect(self.winId())
-
-        self.setStyleSheet("AcrylicWindow{background:transparent}")
 
     def nativeEvent(self, eventType, message):
         """ Handle the Windows message """

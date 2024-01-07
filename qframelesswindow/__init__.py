@@ -4,21 +4,21 @@ PyQt5-Frameless-Window
 A cross-platform frameless window based on pyqt5, support Win32, Linux and macOS.
 
 Documentation is available in the docstrings and
-online at https://github.com/zhiyiYo/PyQt-Frameless-Window.
+online at https://pyqt-frameless-window.readthedocs.io.
 
 Examples are available at https://github.com/zhiyiYo/PyQt-Frameless-Window/tree/master/examples.
 
 :copyright: (c) 2021 by zhiyiYo.
-:license: MIT, see LICENSE for more details.
+:license: GPLv3, see LICENSE for more details.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.7"
 
 import sys
 
 from PyQt5.QtWidgets import QDialog, QMainWindow
 
-from .titlebar import TitleBar, TitleBarButton, SvgTitleBarButton, StandardTitleBar
+from .titlebar import TitleBar, TitleBarButton, SvgTitleBarButton, StandardTitleBar, TitleBarBase
 
 if sys.platform == "win32":
     from .windows import AcrylicWindow
@@ -43,6 +43,7 @@ class FramelessDialog(QDialog, FramelessWindow):
         self.titleBar.minBtn.hide()
         self.titleBar.maxBtn.hide()
         self.titleBar.setDoubleClickEnabled(False)
+        self.windowEffect.disableMaximizeButton(self.winId())
 
 
 class FramelessMainWindow(QMainWindow, FramelessWindow):

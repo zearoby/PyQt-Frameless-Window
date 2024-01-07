@@ -46,13 +46,19 @@ class MacWindowEffect:
         content.addSubview_positioned_relativeTo_(
             visualEffectView, Cocoa.NSWindowBelow, container)
 
-    def setMicaEffect(self, hWnd):
+    def setMicaEffect(self, hWnd, isDarkMode=False, isAlt=False):
         """ Add mica effect to the window (Win11 only)
 
         Parameters
         ----------
         hWnd: int or `sip.voidptr`
             Window handle
+
+        isDarkMode: bool
+            whether to use dark mode mica effect
+
+        isAlt: bool
+            whether to use mica alt effect
         """
         self.setAcrylicEffect(hWnd)
 
@@ -136,4 +142,21 @@ class MacWindowEffect:
         hWnd : int or `sip.voidptr`
             Window handle
         """
-        pass
+
+    @staticmethod
+    def disableMaximizeButton(hWnd):
+        """ Disable the maximize button of window
+
+        Parameters
+        ----------
+        hWnd : int or `sip.voidptr`
+            Window handle
+        """
+
+    def enableBlurBehindWindow(self, hWnd):
+        """ enable the blur effect behind the whole client
+        Parameters
+        ----------
+        hWnd: int or `sip.voidptr`
+            Window handle
+        """
