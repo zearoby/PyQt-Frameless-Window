@@ -12,11 +12,12 @@ Examples are available at https://github.com/zhiyiYo/PyQt-Frameless-Window/tree/
 :license: GPLv3, see LICENSE for more details.
 """
 
-__version__ = "0.3.9"
+__version__ = "0.7.3"
 __author__ = "zhiyiYo"
 
 import sys
 
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QDialog, QMainWindow
 
 from .titlebar import TitleBar, TitleBarButton, SvgTitleBarButton, StandardTitleBar, TitleBarBase

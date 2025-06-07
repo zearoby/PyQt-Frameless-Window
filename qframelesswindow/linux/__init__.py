@@ -1,5 +1,5 @@
 # coding:utf-8
-from PyQt5.QtCore import QCoreApplication, QEvent, Qt
+from PyQt5.QtCore import QCoreApplication, QEvent, Qt, QSize, QRect
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtWidgets import QWidget
 
@@ -17,6 +17,7 @@ class LinuxFramelessWindow(QWidget):
         super().__init__(parent=parent)
         self.windowEffect = LinuxWindowEffect(self)
         self.titleBar = TitleBar(self)
+        self._isSystemButtonVisible = False
         self._isResizeEnabled = True
 
         self.updateFrameless()
@@ -31,6 +32,23 @@ class LinuxFramelessWindow(QWidget):
 
     def updateFrameless(self):
         self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+
+    def setStayOnTop(self, isTop: bool):
+        """ set the stay on top status """
+        if isTop:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+
+        self.updateFrameless()
+        self.show()
+
+    def toggleStayOnTop(self):
+        """ toggle the stay on top status """
+        if self.windowFlags() & Qt.WindowStaysOnTopHint:
+            self.setStayOnTop(False)
+        else:
+            self.setStayOnTop(True)
 
     def setTitleBar(self, titleBar):
         """ set custom title bar
@@ -49,6 +67,24 @@ class LinuxFramelessWindow(QWidget):
     def setResizeEnabled(self, isEnabled: bool):
         """ set whether resizing is enabled """
         self._isResizeEnabled = isEnabled
+
+    def isSystemButtonVisible(self):
+        """ Returns whether the system title bar button is visible """
+        return self._isSystemButtonVisible
+
+    def setSystemTitleBarButtonVisible(self, isVisible):
+        """ set the visibility of system title bar button, only works for macOS """
+        pass
+
+    def systemTitleBarRect(self, size: QSize) -> QRect:
+        """ Returns the system title bar rect, only works for macOS
+
+        Parameters
+        ----------
+        size: QSize
+            original system title bar rect
+        """
+        return QRect(0, 0, size.width(), size.height())
 
     def eventFilter(self, obj, event):
         et = event.type()
